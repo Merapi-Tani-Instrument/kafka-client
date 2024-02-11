@@ -34,6 +34,7 @@ func (c ConsumerMultiError) Error() string {
 type ConsumerGroup interface {
 	Subscribe(topics []string, groupId string) error
 	Pool(duration time.Duration) (*ConsumerResult, error)
+	Commit(result *ConsumerResultPartition) error
 	Close() error
 }
 
@@ -45,6 +46,7 @@ type ConsumerGroupContext struct {
 	session               *consumerGroupSession
 	brokerMetadata        []*Broker
 	topicLeaderAndReplica map[string]map[int32]*topicLeaderAndReplica //[topic][partition][data]
+	groupId               string
 }
 
 func NewConsumerGroup(addr string, config *Config) (ConsumerGroup, error) {
@@ -77,6 +79,38 @@ func (c *ConsumerGroupContext) Pool(duration time.Duration) (*ConsumerResult, er
 	return nil, nil
 }
 
+func (c *ConsumerGroupContext) Commit(result *ConsumerResultPartition) error {
+	req := &OffsetCommitRequest{
+		Version:                 4,
+		ConsumerGroup:           c.groupId,
+		GroupInstanceId:         c.session.groupInstanceId,
+		ConsumerID:              c.session.memberID,
+		ConsumerGroupGeneration: c.session.generationId,
+	}
+	req.AddBlock(result.Topic, result.Partition, result.Offset, result.Timestamp.Unix(), "")
+	fmt.Println(req)
+	res, err := result.broker.CommitOffset(req)
+
+	if err != nil {
+		return err
+	}
+
+	for top, par := range res.Errors {
+		fmt.Print("Topic ", top)
+		for p, err := range par {
+			fmt.Print(" par ", p, " err ", err)
+		}
+		fmt.Println()
+	}
+
+	if errTopic, ok := res.Errors[result.Topic]; ok {
+		if errPartition, ok := errTopic[result.Partition]; ok {
+			return errPartition
+		}
+	}
+	return ErrUnknown
+}
+
 func (c *ConsumerGroupContext) Subscribe(topics []string, groupId string) error {
 	if c.broker.opened != 1 {
 		return ErrClosedConsumerGroup
@@ -90,6 +124,7 @@ func (c *ConsumerGroupContext) Subscribe(topics []string, groupId string) error 
 	if len(topics) == 0 {
 		return ErrTopicConsumerNotProvide
 	}
+	c.groupId = groupId
 
 	c.broker.Open(c.config)
 

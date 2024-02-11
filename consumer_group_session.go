@@ -18,6 +18,7 @@ type consumerGroupSession struct {
 	groupInstanceId   *string
 	offsetManager     *offsetManager
 	fetchJob          fetchJob
+	generationId      int32
 	result            chan *ConsumerResult
 }
 
@@ -30,11 +31,14 @@ type ConsumerResultPartition struct {
 	Partition  int32
 	Value, Key []byte
 	Error      error
+	broker     *Broker
+	Offset     int64
+	Timestamp  time.Time
 }
 
 type converterConsumerMessage []*ConsumerMessage
 
-func (c converterConsumerMessage) convertToConsumerResult() []*ConsumerResultPartition {
+func (c converterConsumerMessage) convertToConsumerResult(broker *Broker) []*ConsumerResultPartition {
 	var d []*ConsumerResultPartition
 	for _, val := range c {
 		d = append(d, &ConsumerResultPartition{
@@ -43,6 +47,9 @@ func (c converterConsumerMessage) convertToConsumerResult() []*ConsumerResultPar
 			Value:     val.Value,
 			Key:       val.Key,
 			Error:     nil,
+			broker:    broker,
+			Offset:    val.Offset,
+			Timestamp: val.Timestamp,
 		})
 	}
 
@@ -90,6 +97,7 @@ func (c *consumerGroupSession) startSession(groupId string, topics []string) err
 	default:
 		return join.Err
 	}
+	c.generationId = join.GenerationId
 
 	var strategy BalanceStrategy
 	var ok bool

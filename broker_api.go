@@ -110,3 +110,14 @@ func (b *Broker) Fetch(request *FetchRequest) (*FetchResponse, error) {
 
 	return response, nil
 }
+
+func (b *Broker) CommitOffset(request *OffsetCommitRequest) (*OffsetCommitResponse, error) {
+	response := new(OffsetCommitResponse)
+
+	err := b.sendAndReceive(request, response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}

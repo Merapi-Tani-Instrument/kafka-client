@@ -283,7 +283,7 @@ func (f fetchJobArray) subscribe(broker *Broker, c *consumerGroupSession) {
 					fmt.Printf("unknown records type: %v\n", records.recordsType)
 				}
 			}
-			data.ConsumerPartitons = append(data.ConsumerPartitons, converterConsumerMessage(messages).convertToConsumerResult()...)
+			data.ConsumerPartitons = append(data.ConsumerPartitons, converterConsumerMessage(messages).convertToConsumerResult(broker)...)
 		}
 		if len(data.ConsumerPartitons) > 0 {
 			c.result <- data

@@ -95,6 +95,8 @@ func (b *Broker) Open(conf *Config) error {
 }
 
 func (b *Broker) sendAndReceive(req protocolBody, res protocolBody) error {
+	b.lock.Lock()
+	defer b.lock.Unlock()
 	if b.opened != 1 {
 		return ErrClosedClient
 	}
