@@ -87,20 +87,11 @@ func (c *ConsumerGroupContext) Commit(result *ConsumerResultPartition) error {
 		ConsumerID:              c.session.memberID,
 		ConsumerGroupGeneration: c.session.generationId,
 	}
-	req.AddBlock(result.Topic, result.Partition, result.Offset, result.Timestamp.Unix(), "")
-	fmt.Println(req)
+	req.AddBlock(result.Topic, result.Partition, result.Offset+1, result.Timestamp.Unix(), "")
 	res, err := result.broker.CommitOffset(req)
 
 	if err != nil {
 		return err
-	}
-
-	for top, par := range res.Errors {
-		fmt.Print("Topic ", top)
-		for p, err := range par {
-			fmt.Print(" par ", p, " err ", err)
-		}
-		fmt.Println()
 	}
 
 	if errTopic, ok := res.Errors[result.Topic]; ok {

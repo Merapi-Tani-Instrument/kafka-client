@@ -10,7 +10,7 @@ import (
 
 func TestConsumerMessage(t *testing.T) {
 	cofig := kafkaClient.NewConfig()
-	consumer, err := kafkaClient.NewConsumerGroup("", cofig)
+	consumer, err := kafkaClient.NewConsumerGroup("34.128.82.87:9092", cofig)
 	if err != nil {
 		fmt.Println("New Consumer")
 		panic(err)
@@ -23,7 +23,6 @@ func TestConsumerMessage(t *testing.T) {
 		panic(err)
 	}
 
-	fmt.Println("Start pool")
 	response, err := consumer.Pool(time.Duration(10) * time.Second)
 	if response == nil && err == nil {
 		fmt.Println("No data")
