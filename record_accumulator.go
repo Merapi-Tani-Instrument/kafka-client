@@ -1,7 +1,6 @@
 package kafkaClient
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -78,7 +77,6 @@ func (r *RecordAccumulator) Drain() *RecordBuffer {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	rb := new(RecordBuffer)
-	fmt.Println("Pool len ", len(r.buffer.data))
 	for _, d := range r.buffer.data {
 		rb.data = append(rb.data, d)
 	}
