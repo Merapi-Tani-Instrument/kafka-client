@@ -41,6 +41,7 @@ func (p *ProducerTopicPartition) partitionForTopic(topic string, req chan *produ
 			req: NewMetadataRequest(V2_0_0_0, []string{topic}),
 			res: res,
 		}
+		metadataReq.req.AllowAutoTopicCreation = true
 		req <- metadataReq
 		metadataResponse := <-metadataReq.res
 		if metadataResponse.err != nil {
