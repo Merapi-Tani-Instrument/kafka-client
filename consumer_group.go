@@ -137,7 +137,9 @@ func (c *ConsumerGroupContext) Subscribe(topics []string, groupId string) error 
 }
 
 func (c *ConsumerGroupContext) refreshMetadata(topic []string) error {
-	res, err := c.broker.GetMetadata(NewMetadataRequest(V2_0_0_0, topic))
+	req := NewMetadataRequest(V2_0_0_0, topic)
+	req.AllowAutoTopicCreation = true
+	res, err := c.broker.GetMetadata(req)
 	if err != nil {
 		return err
 	}
