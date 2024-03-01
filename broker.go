@@ -39,17 +39,15 @@ func (b *Broker) Close() error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if b.conn == nil {
-		return ErrNotConnected
+	atomic.StoreInt32(&b.opened, 0)
+	if b.conn != nil {
+		b.conn.Close()
 	}
-
-	err := b.conn.Close()
 
 	b.conn = nil
 	b.connErr = nil
-	atomic.StoreInt32(&b.opened, 0)
 
-	return err
+	return nil
 }
 
 func newBufConn(conn net.Conn) *bufConn {
@@ -60,7 +58,7 @@ func newBufConn(conn net.Conn) *bufConn {
 }
 
 func (b *Broker) Open(conf *Config) error {
-	if !atomic.CompareAndSwapInt32(&b.opened, 0, 1) {
+	if atomic.LoadInt32(&b.opened) == 1 {
 		return ErrAlreadyConnected
 	}
 
@@ -84,11 +82,12 @@ func (b *Broker) Open(conf *Config) error {
 
 	b.conn = newBufConn(b.conn)
 	b.conf = conf
+	atomic.StoreInt32(&b.opened, 1)
 
 	if b.id >= 0 {
-		fmt.Printf("Connected to broker at %s (registered as #%d)\n", b.addr, b.id)
+		Logger.Printf("Connected to broker at %s (registered as #%d)\n", b.addr, b.id)
 	} else {
-		fmt.Printf("Connected to broker at %s (unregistered)\n", b.addr)
+		Logger.Printf("Connected to broker at %s (unregistered)\n", b.addr)
 	}
 
 	return nil
@@ -159,6 +158,9 @@ func getHeaderLength(headerVersion int16) int8 {
 }
 
 func (b *Broker) readFull(buf []byte) (n int, err error) {
+	if b.conn == nil {
+		return 0, ErrClosedClient
+	}
 	if err := b.conn.SetReadDeadline(time.Now().Add(b.conf.Net.ReadTimeout)); err != nil {
 		return 0, err
 	}
@@ -166,6 +168,9 @@ func (b *Broker) readFull(buf []byte) (n int, err error) {
 }
 
 func (b *Broker) write(buf []byte) (n int, err error) {
+	if b.conn == nil {
+		return 0, ErrClosedClient
+	}
 	if err := b.conn.SetWriteDeadline(time.Now().Add(b.conf.Net.WriteTimeout)); err != nil {
 		return 0, err
 	}

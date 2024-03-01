@@ -2,6 +2,8 @@ package kafkaClient_test
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"testing"
 	"time"
 
@@ -9,40 +11,46 @@ import (
 )
 
 func TestConsumerMessage(t *testing.T) {
+	kafkaClient.Logger = log.New(os.Stdout, "[Test]", 1)
 	cofig := kafkaClient.NewConfig()
 	consumer, err := kafkaClient.NewConsumerGroup("34.128.82.87:9092", cofig)
 	if err != nil {
 		fmt.Println("New Consumer")
-		panic(err)
 	}
 
-	fmt.Println("Start Subscribe")
-	err = consumer.Subscribe([]string{"mrt-record"}, "tester")
-	if err != nil {
-		fmt.Println("Subscribe Consumer")
-		panic(err)
-	}
+	hasSubscribe := false
+	for {
+		if !hasSubscribe {
+			fmt.Println("Start Subscribe")
+			err = consumer.Subscribe([]string{"mrt-record"}, "tester")
+		}
 
-	response, err := consumer.Pool(time.Duration(10) * time.Second)
-	if response == nil && err == nil {
-		fmt.Println("No data")
-	} else if err != nil {
-		panic(err)
-	} else {
-		for _, d := range response.ConsumerPartitons {
-			fmt.Println("Topic  ", d.Topic, " value ", string(d.Value), " commit err ", consumer.Commit(d))
+		if err != nil {
+			fmt.Println("Subscribe Consumer Error", err)
+			time.Sleep(time.Duration(2) * time.Second)
+			hasSubscribe = false
+		} else {
+			fmt.Println("Has subscribe")
+			hasSubscribe = true
+		}
+		if !hasSubscribe {
+			fmt.Println("Error and continue")
+			continue
+		}
+
+		response, err := consumer.Pool(time.Duration(10) * time.Second)
+		if response == nil && err == nil {
+			fmt.Println("No data")
+		} else if err != nil {
+			fmt.Println("Pool error: ", err)
+			time.Sleep(time.Duration(2) * time.Second)
+
+			consumer.Close()
+			hasSubscribe = false
+		} else {
+			for _, d := range response.ConsumerPartitons {
+				fmt.Println("Topic  ", d.Topic, " value ", string(d.Value), " commit err ", consumer.Commit(d))
+			}
 		}
 	}
-	response, err = consumer.Pool(time.Duration(10) * time.Second)
-	if response == nil && err == nil {
-		fmt.Println("No data1")
-	} else if err != nil {
-		panic(err)
-	} else {
-		for _, d := range response.ConsumerPartitons {
-			fmt.Println("Topic1  ", d.Topic, " value ", string(d.Value))
-		}
-	}
-
-	consumer.Close()
 }

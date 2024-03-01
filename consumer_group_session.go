@@ -66,10 +66,12 @@ func newSession(c *ConsumerGroupContext) *consumerGroupSession {
 func (c *consumerGroupSession) startSession(groupId string, topics []string) error {
 	coordinator, err := c.coordinator(groupId)
 	if err != nil {
+		Logger.Printf("No coordinator")
 		return err
 	}
 	c.coordinatorBroker = coordinator
 
+	Logger.Printf("Join Group")
 	join, err := c.joinGroupRequest(groupId, c.coordinatorBroker, topics)
 	if err != nil {
 		_ = c.coordinatorBroker.Close()
@@ -78,6 +80,7 @@ func (c *consumerGroupSession) startSession(groupId string, topics []string) err
 
 	switch join.Err {
 	case ErrNoError:
+		Logger.Println("Join with member id ", join.MemberId)
 		c.memberID = join.MemberId
 	case ErrUnknownMemberId, ErrIllegalGeneration:
 		// reset member ID and retry immediately
@@ -124,6 +127,7 @@ func (c *consumerGroupSession) startSession(groupId string, topics []string) err
 		}
 	}
 
+	Logger.Printf("Sync Group")
 	syncGroupResponse, err := c.syncGroupRequest(coordinator, members, plan, join.GenerationId, strategy, groupId)
 
 	if err != nil {
@@ -135,6 +139,7 @@ func (c *consumerGroupSession) startSession(groupId string, topics []string) err
 	case ErrNoError:
 	case ErrUnknownMemberId, ErrIllegalGeneration:
 		// reset member ID and retry immediately
+		Logger.Println("Sync error with member id ", join.MemberId)
 		c.memberID = ""
 	case ErrNotCoordinatorForConsumer, ErrRebalanceInProgress, ErrOffsetsLoadInProgress:
 		// retry after backoff
@@ -170,6 +175,7 @@ func (c *consumerGroupSession) startSession(groupId string, topics []string) err
 		}
 	}
 
+	Logger.Println("New fetcher")
 	return c.newFetcher(topics, groupId, join.GenerationId, claims)
 }
 

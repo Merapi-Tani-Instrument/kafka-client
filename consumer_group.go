@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-var ErrClosedConsumerGroup = errors.New("kafka: tried to use a consumer group that was closed")
+// var ErrClosedConsumerGroup = errors.New("kafka: tried to use a consumer group that was closed")
 var ErrAlreadyConsume = errors.New("kafka: already consume")
 var ErrTopicConsumerNotProvide = errors.New("no topics provided")
 var ErrNoJobs = errors.New("No Jobs")
@@ -51,9 +51,6 @@ type ConsumerGroupContext struct {
 
 func NewConsumerGroup(addr string, config *Config) (ConsumerGroup, error) {
 	broker := NewBroker(addr)
-	if err := broker.Open(config); err != nil {
-		return nil, err
-	}
 	res := &ConsumerGroupContext{
 		config: config,
 		broker: broker,
@@ -103,9 +100,7 @@ func (c *ConsumerGroupContext) Commit(result *ConsumerResultPartition) error {
 }
 
 func (c *ConsumerGroupContext) Subscribe(topics []string, groupId string) error {
-	if c.broker.opened != 1 {
-		return ErrClosedConsumerGroup
-	} else if c.ready {
+	if c.ready {
 		return ErrAlreadyConsume
 	}
 
@@ -117,16 +112,24 @@ func (c *ConsumerGroupContext) Subscribe(topics []string, groupId string) error 
 	}
 	c.groupId = groupId
 
-	c.broker.Open(c.config)
+	if err := c.broker.Open(c.config); err != nil && err != ErrAlreadyConnected {
+		return err
+	}
 
+	Logger.Println("Refresh Metadata")
 	if err := c.refreshMetadata(topics); err != nil {
 		return err
 	}
 
 	if c.session == nil {
 		c.session = newSession(c)
+	} else {
+		c.session.closed = false
 	}
+
+	Logger.Println("Start Session")
 	err := c.session.startSession(groupId, topics)
+
 	if err != nil {
 		c.ready = false
 	} else {
@@ -166,6 +169,8 @@ func (c *ConsumerGroupContext) refreshMetadata(topic []string) error {
 	}
 	c.brokerMetadata = res.Brokers
 
+	Logger.Println("[Refresh metadata] Total broker metadata ", len(c.brokerMetadata))
+
 	if len(ce) > 0 {
 		return ce
 	}
@@ -174,6 +179,7 @@ func (c *ConsumerGroupContext) refreshMetadata(topic []string) error {
 func (c *ConsumerGroupContext) Close() error {
 	c.broker.Close()
 	c.session.closed = true
+	c.ready = false
 	for _, b := range c.brokerMetadata {
 		b.Close()
 	}

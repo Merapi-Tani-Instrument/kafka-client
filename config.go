@@ -177,22 +177,22 @@ func NewConfig() *Config {
 func (c *Config) Validate() error {
 	// some configuration values should be warned on but not fail completely, do those first
 	if !c.Net.TLS.Enable && c.Net.TLS.Config != nil {
-		fmt.Println("Net.TLS is disabled but a non-nil configuration was provided.")
+		Logger.Println("Net.TLS is disabled but a non-nil configuration was provided.")
 	}
 	if c.Producer.Timeout%time.Millisecond != 0 {
-		fmt.Println("Producer.Timeout only supports millisecond resolution; nanoseconds will be truncated.")
+		Logger.Println("Producer.Timeout only supports millisecond resolution; nanoseconds will be truncated.")
 	}
 	if c.Consumer.Group.Session.Timeout%time.Millisecond != 0 {
-		fmt.Println("Consumer.Group.Session.Timeout only supports millisecond precision; nanoseconds will be truncated.")
+		Logger.Println("Consumer.Group.Session.Timeout only supports millisecond precision; nanoseconds will be truncated.")
 	}
 	if c.Consumer.Group.Heartbeat.Interval%time.Millisecond != 0 {
-		fmt.Println("Consumer.Group.Heartbeat.Interval only supports millisecond precision; nanoseconds will be truncated.")
+		Logger.Println("Consumer.Group.Heartbeat.Interval only supports millisecond precision; nanoseconds will be truncated.")
 	}
 	if c.Consumer.Group.Rebalance.Timeout%time.Millisecond != 0 {
-		fmt.Println("Consumer.Group.Rebalance.Timeout only supports millisecond precision; nanoseconds will be truncated.")
+		Logger.Println("Consumer.Group.Rebalance.Timeout only supports millisecond precision; nanoseconds will be truncated.")
 	}
 	if c.ClientID == defaultClientID {
-		fmt.Println("ClientID is the default of 'mertani', you should consider setting it to something application-specific.")
+		Logger.Println("ClientID is the default of 'mertani', you should consider setting it to something application-specific.")
 	}
 
 	// validate the Producer values
@@ -234,7 +234,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.Consumer.Group.Rebalance.Strategy != nil {
-		fmt.Println("Deprecation warning: Consumer.Group.Rebalance.Strategy exists for historical compatibility" +
+		Logger.Println("Deprecation warning: Consumer.Group.Rebalance.Strategy exists for historical compatibility" +
 			" and should not be used. Please use Consumer.Group.Rebalance.GroupStrategies")
 	}
 

@@ -60,15 +60,20 @@ func (c *consumerGroupSession) newFetcher(topics []string, groupID string, gener
 	}
 	c.offsetManager.clear()
 	if err := c.offsetManager.requestInitialOffset(groupID, c.coordinatorBroker, claims); err != nil {
+		Logger.Println("[Fetcher] Error initial Offset")
 		c.closed = true
 		return err
 	}
 	offsetManager, err := c.offsetManager.chooseStartingOffset(c.coordinatorBroker)
 	if err != nil {
 		c.closed = true
+		Logger.Println("[Fetcher] Error initialize starting offset")
 		return err
 	}
 
+	if len(c.fetchJob) > 0 {
+		c.fetchJob = c.fetchJob[:0]
+	}
 	for topic, partitions := range offsetManager {
 		for partition, offset := range partitions {
 			if partitionLeaderAndReplica, ok := c.parent.topicLeaderAndReplica[topic]; ok {
@@ -76,6 +81,7 @@ func (c *consumerGroupSession) newFetcher(topics []string, groupID string, gener
 					broker := tr.findBroker(c.parent.brokerMetadata, c.coordinatorBroker)
 					if broker == nil {
 						c.closed = true
+						Logger.Println("[Fetcher] Broker not found from partition ", partition, " with topic ", topic)
 						return ErrBrokerNotAvailable
 					} else {
 						c.fetchJob = append(c.fetchJob, &fetchLoop{
@@ -88,16 +94,19 @@ func (c *consumerGroupSession) newFetcher(topics []string, groupID string, gener
 					}
 				} else {
 					c.closed = true
+					Logger.Println("[Fetcher] Invalid partition ", partition, " with topic ", topic)
 					return ErrInvalidPartition
 				}
 			} else {
 				c.closed = true
+				Logger.Println("[Fetcher] No partition ", partition, " with topic ", topic)
 				return ErrInvalidPartition
 			}
 		}
 	}
 
 	if len(c.fetchJob) > 0 {
+		Logger.Println("[Fetcher] Start Job Fetcher in total ", len(c.fetchJob))
 		c.fetchJob.startFetchJob(c)
 	} else {
 		c.closed = true
@@ -520,13 +529,16 @@ func (o *offsetManager) computeBackoff(coordinator *Broker) time.Duration {
 func (c *consumerGroupSession) heartbeatLoop(groupID, memberID string, generationId int32) {
 	pause := time.NewTicker(c.coordinatorBroker.conf.Consumer.Group.Heartbeat.Interval)
 	defer pause.Stop()
+	Logger.Println("[Heartbeat] Member id ", memberID)
 
 	retries := c.coordinatorBroker.conf.Metadata.Retry.Max
-	for {
+	for !c.closed {
 		resp, err := c.heartbeatRequest(groupID, memberID, generationId)
 		if err != nil {
 			if retries <= 0 {
+				Logger.Printf("[Heartbeat] Close coordinator from id\n")
 				_ = c.coordinatorBroker.Close()
+				c.closed = true
 				return
 			}
 			retries--
@@ -536,21 +548,26 @@ func (c *consumerGroupSession) heartbeatLoop(groupID, memberID string, generatio
 		case ErrNoError:
 			retries = c.coordinatorBroker.conf.Metadata.Retry.Max
 		case ErrRebalanceInProgress:
+			Logger.Printf("[Heartbeat] Rebalance")
 			c.closed = true
 			return
 		case ErrUnknownMemberId, ErrIllegalGeneration:
+			Logger.Printf("[Heartbeat] Unknow member id")
 			return
 		case ErrFencedInstancedId:
 			if c.groupInstanceId != nil {
-				Logger.Printf("JoinGroup failed: group instance id %s has been fenced\n", *c.groupInstanceId)
+				Logger.Printf("[Heartbeat] JoinGroup failed: group instance id %s has been fenced\n", *c.groupInstanceId)
 			}
 			return
 		default:
+			Logger.Printf("[Heartbeat] unknow error ", resp.Err)
+			c.closed = true
 			return
 		}
 
 		<-pause.C
 	}
+	Logger.Println("[Heartbeat] Stop")
 }
 
 func (c *consumerGroupSession) heartbeatRequest(groupID, memberID string, generationID int32) (*HeartbeatResponse, error) {
