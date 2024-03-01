@@ -95,6 +95,10 @@ func (ctx *ProducerContext) sendProducerData(nowS time.Time) {
 		ctx.newMessageBatch(recordGroups)
 		res, err := ctx.broker.Produce(ctx.produceRequest)
 		if err != nil {
+			if err == ErrClosedClient || err == ErrNotConnected {
+				ctx.broker.Close()
+				ctx.broker.Open(ctx.config)
+			}
 			records.SendResultError(err)
 		} else {
 			allTopicRecord := recordGroups.GetAllTopic()
