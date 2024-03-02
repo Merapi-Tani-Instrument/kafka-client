@@ -536,7 +536,7 @@ func (c *consumerGroupSession) heartbeatLoop(groupID, memberID string, generatio
 		resp, err := c.heartbeatRequest(groupID, memberID, generationId)
 		if err != nil {
 			if retries <= 0 {
-				Logger.Printf("[Heartbeat] Close coordinator from id\n")
+				Logger.Printf("[Heartbeat] Close coordinator with err %v\n", err)
 				_ = c.coordinatorBroker.Close()
 				c.closed = true
 				return
