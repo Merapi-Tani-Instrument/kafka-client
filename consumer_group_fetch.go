@@ -71,6 +71,12 @@ func (c *consumerGroupSession) newFetcher(topics []string, groupID string, gener
 		return err
 	}
 
+	for k, p := range offsetManager {
+		for par, off := range p {
+			Logger.Println("Topic ", k, " par ", par, " offset ", off)
+		}
+	}
+
 	if len(c.fetchJob) > 0 {
 		c.fetchJob = c.fetchJob[:0]
 	}
