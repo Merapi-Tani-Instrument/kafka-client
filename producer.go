@@ -119,7 +119,7 @@ func (ctx *ProducerContext) sendProducerData(nowS time.Time) {
 				records.SendResultErrorByTopic(topic, ErrNoResponse)
 			}
 		}
-		ctx.produceRequest = nil
+		ctx.produceRequest.records = nil
 	}
 }
 
