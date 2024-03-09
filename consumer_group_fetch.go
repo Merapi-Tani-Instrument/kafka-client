@@ -559,11 +559,13 @@ func (c *consumerGroupSession) heartbeatLoop(groupID, memberID string, generatio
 			return
 		case ErrUnknownMemberId, ErrIllegalGeneration:
 			Logger.Printf("[Heartbeat] Unknow member id")
+			c.closed = true
 			return
 		case ErrFencedInstancedId:
 			if c.groupInstanceId != nil {
 				Logger.Printf("[Heartbeat] JoinGroup failed: group instance id %s has been fenced\n", *c.groupInstanceId)
 			}
+			c.closed = true
 			return
 		default:
 			Logger.Printf("[Heartbeat] unknow error ", resp.Err)
