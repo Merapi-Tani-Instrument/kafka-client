@@ -23,9 +23,9 @@ func (b *offsetCommitRequestBlock) encode(pe packetEncoder, version int16) error
 	pe.putInt64(b.offset)
 	if version == 1 {
 		pe.putInt64(b.timestamp)
-	} else if b.timestamp != 0 {
+	} /*else if b.timestamp != 0 {
 		Logger.Println("Non-zero timestamp specified for OffsetCommitRequest not v1, it will be ignored")
-	}
+	}*/
 	if version >= 6 {
 		pe.putInt32(b.committedLeaderEpoch)
 	}
