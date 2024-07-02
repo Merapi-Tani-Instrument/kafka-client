@@ -151,11 +151,11 @@ func (ctx *ProducerContext) newMessageBatch(buffer map[string][]*ProducerMessage
 			ProducerEpoch:    -1,
 		}
 		partition := 0
-		timestampDelta := batchDelta
+		timestampDelta := batchDelta * time.Duration(time.Now().UnixMilli())
 		for _, msg := range rec {
 			batch.Records = append(batch.Records, &Record{
 				Value:          msg.Data.Encode(),
-				TimestampDelta: batchDelta,
+				TimestampDelta: timestampDelta,
 			})
 			timestampDelta += 1
 			partition = msg.Partition

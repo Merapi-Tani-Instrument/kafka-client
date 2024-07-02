@@ -10,7 +10,7 @@ import (
 
 func TestSendMessage(t *testing.T) {
 	cofig := kafkaClient.NewConfig()
-	producer, err := kafkaClient.NewProducer("", cofig)
+	producer, err := kafkaClient.NewProducer("127.0.0.1:9092", cofig)
 	if err != nil {
 		panic(err)
 	}

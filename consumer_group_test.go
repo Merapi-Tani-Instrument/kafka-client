@@ -13,7 +13,7 @@ import (
 func TestConsumerMessage(t *testing.T) {
 	kafkaClient.Logger = log.New(os.Stdout, "[Test]", 1)
 	cofig := kafkaClient.NewConfig()
-	consumer, err := kafkaClient.NewConsumerGroup("34.128.82.87:9092", cofig)
+	consumer, err := kafkaClient.NewConsumerGroup("127.0.01:9092", cofig)
 	if err != nil {
 		fmt.Println("New Consumer")
 	}
