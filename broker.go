@@ -32,7 +32,7 @@ type bufConn struct {
 }
 
 func NewBroker(addr string) *Broker {
-	return &Broker{id: 0, addr: addr}
+	return &Broker{id: 0, addr: addr, correlationID: 0}
 }
 
 func (b *Broker) Close() error {
@@ -123,7 +123,9 @@ func (b *Broker) sendAndReceive(req protocolBody, res protocolBody) error {
 	}
 	decodedHeader := responseHeader{}
 	err = versionedDecode(header, &decodedHeader, res.headerVersion())
+	fmt.Println("Error version decode ", err)
 	if decodedHeader.correlationID != request.correlationID {
+		b.correlationID = 0
 		return PacketDecodingError{fmt.Sprintf("correlation ID didn't match, wanted %d, got %d", request.correlationID, decodedHeader.correlationID)}
 	}
 	responseBuffer := make([]byte, decodedHeader.length-int32(headerLength)+4)
