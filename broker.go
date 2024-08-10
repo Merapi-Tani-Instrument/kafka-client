@@ -112,7 +112,6 @@ func (b *Broker) sendAndReceive(req protocolBody, res protocolBody) error {
 	if err != nil {
 		return err
 	}
-	b.correlationID++
 
 	headerLength := getHeaderLength(res.headerVersion())
 	header := make([]byte, headerLength)
@@ -124,8 +123,12 @@ func (b *Broker) sendAndReceive(req protocolBody, res protocolBody) error {
 	decodedHeader := responseHeader{}
 	versionedDecode(header, &decodedHeader, res.headerVersion())
 	if decodedHeader.correlationID != request.correlationID {
-		return PacketDecodingError{fmt.Sprintf("correlation ID didn't match, wanted %d, got %d. With message size %d", request.correlationID, decodedHeader.correlationID, len(requestBuffer))}
+		if decodedHeader.correlationID == 0 {
+			b.correlationID = 0
+		}
+		return PacketDecodingError{fmt.Sprintf("correlation ID didn't match, wanted %d, got %d.", request.correlationID, decodedHeader.correlationID)}
 	}
+	b.correlationID++
 	responseBuffer := make([]byte, decodedHeader.length-int32(headerLength)+4)
 	_, err = b.readFull(responseBuffer)
 	if err != nil {
