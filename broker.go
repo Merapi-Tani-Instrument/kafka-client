@@ -32,7 +32,7 @@ type bufConn struct {
 }
 
 func NewBroker(addr string) *Broker {
-	return &Broker{id: 0, addr: addr}
+	return &Broker{id: 0, addr: addr, correlationID: 0}
 }
 
 func (b *Broker) Close() error {
