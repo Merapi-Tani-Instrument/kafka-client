@@ -3,6 +3,7 @@ package kafkaClient
 import (
 	"errors"
 	"slices"
+	"syscall"
 	"time"
 )
 
@@ -95,7 +96,7 @@ func (ctx *ProducerContext) sendProducerData(nowS time.Time) {
 		ctx.newMessageBatch(recordGroups)
 		res, err := ctx.broker.Produce(ctx.produceRequest)
 		if err != nil {
-			if err == ErrClosedClient || err == ErrNotConnected {
+			if err == ErrClosedClient || err == ErrNotConnected || errors.Is(err, syscall.EPIPE) {
 				ctx.broker.Close()
 				ctx.broker.Open(ctx.config)
 			}
