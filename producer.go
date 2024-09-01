@@ -2,6 +2,8 @@ package kafkaClient
 
 import (
 	"errors"
+	"log"
+	"os"
 	"slices"
 	"time"
 )
@@ -36,6 +38,7 @@ type ProducerContext struct {
 	topicPartition  *ProducerTopicPartition
 	produceRequest  *ProduceRequest
 	metadataRequest chan *producerMetadataRequest
+	logger          *log.Logger
 }
 
 type Producer interface {
@@ -57,6 +60,7 @@ func NewProducer(addr string, config *Config) (Producer, error) {
 		done:            make(chan bool),
 		metadataRequest: make(chan *producerMetadataRequest),
 		stop:            false,
+		logger:          log.New(os.Stdout, "[Kafka Producer]", log.LstdFlags),
 	}
 	go ctx.task()
 	return ctx, nil
@@ -95,9 +99,9 @@ func (ctx *ProducerContext) sendProducerData(nowS time.Time) {
 		ctx.newMessageBatch(recordGroups)
 		res, err := ctx.broker.Produce(ctx.produceRequest)
 		if err != nil {
-			ctx.broker.Close()
-			ctx.broker.Open(ctx.config)
 			records.SendResultError(err)
+			ctx.broker.Close()
+			ctx.logger.Println("Send message failed with err,", err, " and reopen with err ", ctx.broker.Open(ctx.config))
 		} else {
 			allTopicRecord := recordGroups.GetAllTopic()
 			for topic, block := range res.Blocks {
