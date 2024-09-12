@@ -2,6 +2,7 @@ package kafkaClient
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -129,7 +130,11 @@ func (b *Broker) sendAndReceive(req protocolBody, res protocolBody) error {
 		return PacketDecodingError{fmt.Sprintf("correlation ID didn't match, wanted %d, got %d.", request.correlationID, decodedHeader.correlationID)}
 	}
 	b.correlationID++
-	responseBuffer := make([]byte, decodedHeader.length-int32(headerLength)+4)
+	buffSize := decodedHeader.length - int32(headerLength) + 4
+	if buffSize < 1 {
+		return errors.New("invalid length")
+	}
+	responseBuffer := make([]byte, buffSize)
 	_, err = b.readFull(responseBuffer)
 	if err != nil {
 		return err
