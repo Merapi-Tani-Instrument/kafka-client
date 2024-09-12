@@ -449,13 +449,13 @@ func (o *offsetManager) chooseStartingOffset(coordiator *Broker) (map[string]map
 	}
 	for topic, partitions := range o.partitionsOffsetManager {
 		for partitionID, offset := range partitions {
-			req.AddBlock(topic, int32(partitionID), -2, 1)
+			req.AddBlock(topic, int32(partitionID), -1, 1)
 			res, err := coordiator.GetAvailableOffsets(req)
 			if err != nil {
 				return nil, err
 			}
 			oldestOffset, err := res.getOffset(topic, partitionID)
-			fmt.Println("oldestOffset from ", topic, " partition ", partitionID, " is ", oldestOffset)
+			fmt.Println("oldestOffset from ", topic, " partition ", partitionID, " is ", oldestOffset, "partition offset ", offset)
 			if err != nil {
 				return nil, err
 			}
