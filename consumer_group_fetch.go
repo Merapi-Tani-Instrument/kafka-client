@@ -455,6 +455,7 @@ func (o *offsetManager) chooseStartingOffset(coordiator *Broker) (map[string]map
 				return nil, err
 			}
 			oldestOffset, err := res.getOffset(topic, partitionID)
+			fmt.Println("oldestOffset from ", topic, " partition ", partitionID, " is ", oldestOffset)
 			if err != nil {
 				return nil, err
 			}
